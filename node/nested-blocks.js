@@ -5,17 +5,17 @@ const helper_rgx = /{{(#|\/)(.*)}}/;
 const body = `
 {{#if AWS}}
 
-{{#has CLOUD_PROVIDERS azure}}
+    {{#has CLOUD_PROVIDERS azure}}
 
-{{#eq LOGGER ELK}}
+        {{#eq LOGGER ELK}}
 
-{{/eq}}
+        {{/eq}}
 
-{{/has}}
+    {{/has}}
 
-{{#eq LOGGER splunk}}
+    {{#eq LOGGER splunk}}
 
-{{/eq}}
+    {{/eq}}
 
 {{/if}}
 `;
@@ -62,12 +62,12 @@ function pairHelpers(helpers, pairs) {
         // find this helper's pair
       helpers.slice(1).some((hlp) => {
         if (helper.subtype === hlp.subtype) {
-          if (helper.type !== hlp.type) {
-            pairs.push({
-              open: helper,
-              close: hlp
-            })
-          }
+            if (isOpen(helper.text) && isClose(hlp.text)) {
+                pairs.push({
+                    open: helper,
+                    close: hlp
+                });
+            }
         } 
       });
     });
