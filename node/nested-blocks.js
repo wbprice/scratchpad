@@ -5,17 +5,17 @@ const helper_rgx = /{{(#|\/)(.*)}}/;
 const body = `
 {{#if AWS}}
 
-    {{#has CLOUD_PROVIDERS azure}}
+{{#has CLOUD_PROVIDERS azure}}
 
-        {{#eq LOGGER ELK}}
+{{#eq LOGGER ELK}}
 
-        {{/eq}}
+{{/eq}}
 
-    {{/has}}
+{{/has}}
 
-    {{#eq LOGGER splunk}}
+{{#eq LOGGER splunk}}
 
-    {{/eq}}
+{{/eq}}
 
 {{/if}}
 `;
@@ -37,6 +37,20 @@ function findHelper(body, index) {
       _index: match.index
     }
 }
+
+function fixHelperIndex(helpers) {
+    let index = 0;
+    return helpers.map(helper => {
+        const hlp = Object.assign({}, {
+            text: helper.text,
+            type: helper.type,
+            subtype: helper.subtype,
+            index: index
+        });
+        index += hlp.length;
+        return hlp;
+    });
+};
 
 function findHelpers(body, helpers) {
     if (!helpers) {
@@ -74,6 +88,3 @@ function pairHelpers(helpers, pairs) {
 
   return pairs;
 }
-
-console.log(pairHelpers(findHelpers(body)));
-
