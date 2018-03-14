@@ -28,17 +28,14 @@ const body = `
 {{/if}}
 `;
 
-function findHelper(body, from) {
-    if (!from) {
-        from = 0;
-    }
-    const helper = body.slice(from).match(helper_rgx);
+function findHelper(body) {
+    const helper = body.match(helper_rgx);
     return helper && {
         text: helper[0],
-        type: helper[1] === '#' ? 'open' : 'close',
-        expression: helper[2].split(' ').shift(),
-        index: helper.index + from,
-        end: helper.index + from + helper[0].length
+        type: helper[2].split(' ').shift(),
+        subtype: helper[1] === '#' ? 'open' : 'close',
+        expression: helper[1] + helper[2],
+        _index: helper.index
     };
 }
 
@@ -47,32 +44,30 @@ function findHelpers(body, helpers) {
         helpers = [];
     }
 
-    const lastHelper = helpers[helpers.length - 1];
-    const from = lastHelper && lastHelper.end;
-    const helper = findHelper(body, from)
+    const helper = findHelper(body);
 
     if (!helper) {
         return helpers;
     }
 
     helpers.push(helper);
-    return findHelpers(body, helpers);
+    return findHelpers(body.slice(helper._index + helper.text.length), helpers);
 }
 
 function findMatchingHelperIndex(helpers, openHelper) {
     let childCounter = 0
     return helpers.findIndex(function(helper) {
         // Look for helpers of the same expression.
-        if (openHelper.expression === helper.expression) {
+        if (openHelper.type === helper.type) {
             // if we find more open helpers of this type,
             // increment child counter
-            if (helper.type === 'open') {
+            if (helper.subtype === 'open') {
                 childCounter++;
                 return;
             }
             // if we find a close helper of this type while
             // child counter is nonzero, decrement it.
-            else if (helper.type === 'close' && childCounter > 0) {
+            else if (helper.subtype === 'close' && childCounter > 0) {
                 childCounter--;
                 return;
             }
@@ -110,113 +105,102 @@ function findPairs(helpers, pairs) {
 }
 
 const tree = findPairs(findHelpers(body));
+console.log(JSON.stringify(tree, null, 2))
 
 /*
 [
-    {
-      "open": {
-        "text": "{{#if AWS}}",
-        "type": "open",
-        "expression": "if",
-        "index": 1,
-        "end": 12
-      },
-      "close": {
-        "text": "{{/if}}",
-        "type": "close",
-        "expression": "if",
-        "index": 139,
-        "end": 146
-      },
-      "children": [
-        {
-          "open": {
-            "text": "{{#has CLOUD_PROVIDERS azure}}",
-            "type": "open",
-            "expression": "has",
-            "index": 14,
-            "end": 44
-          },
-          "close": {
-            "text": "{{/has}}",
-            "type": "close",
-            "expression": "has",
-            "index": 97,
-            "end": 105
-          },
-          "children": [
-            {
-              "open": {
-                "text": "{{#eq LOGGER ELK}}",
-                "type": "open",
-                "expression": "eq",
-                "index": 46,
-                "end": 64
-              },
-              "close": {
-                "text": "{{/eq}}",
-                "type": "close",
-                "expression": "eq",
-                "index": 88,
-                "end": 95
-              },
-              "children": [
-                {
-                  "open": {
-                    "text": "{{#if PDF}}",
-                    "type": "open",
-                    "expression": "if",
-                    "index": 66,
-                    "end": 77
-                  },
-                  "close": {
-                    "text": "{{/if}}",
-                    "type": "close",
-                    "expression": "if",
-                    "index": 79,
-                    "end": 86
-                  },
-                  "children": []
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "open": {
-            "text": "{{#eq LOGGER splunk}}",
-            "type": "open",
-            "expression": "eq",
-            "index": 107,
-            "end": 128
-          },
-          "close": {
-            "text": "{{/eq}}",
-            "type": "close",
-            "expression": "eq",
-            "index": 130,
-            "end": 137
-          },
-          "children": []
-        }
-      ]
+  {
+    "open": {
+      "text": "{{#if AWS}}",
+      "type": "open",
+      "expression": "if",
+      "_index": 1
     },
-    {
-      "open": {
-        "text": "{{#if AZURE}}",
-        "type": "open",
-        "expression": "if",
-        "index": 148,
-        "end": 161
+    "close": {
+      "text": "{{/if}}",
+      "type": "close",
+      "expression": "if",
+      "_index": 2
+    },
+    "children": [
+      {
+        "open": {
+          "text": "{{#has CLOUD_PROVIDERS azure}}",
+          "type": "open",
+          "expression": "has",
+          "_index": 2
+        },
+        "close": {
+          "text": "{{/has}}",
+          "type": "close",
+          "expression": "has",
+          "_index": 2
+        },
+        "children": [
+          {
+            "open": {
+              "text": "{{#eq LOGGER ELK}}",
+              "type": "open",
+              "expression": "eq",
+              "_index": 2
+            },
+            "close": {
+              "text": "{{/eq}}",
+              "type": "close",
+              "expression": "eq",
+              "_index": 2
+            },
+            "children": [
+              {
+                "open": {
+                  "text": "{{#if PDF}}",
+                  "type": "open",
+                  "expression": "if",
+                  "_index": 2
+                },
+                "close": {
+                  "text": "{{/if}}",
+                  "type": "close",
+                  "expression": "if",
+                  "_index": 2
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
       },
-      "close": {
-        "text": "{{/if}}",
-        "type": "close",
-        "expression": "if",
-        "index": 163,
-        "end": 170
-      },
-      "children": []
-    }
-  ]
+      {
+        "open": {
+          "text": "{{#eq LOGGER splunk}}",
+          "type": "open",
+          "expression": "eq",
+          "_index": 2
+        },
+        "close": {
+          "text": "{{/eq}}",
+          "type": "close",
+          "expression": "eq",
+          "_index": 2
+        },
+        "children": []
+      }
+    ]
+  },
+  {
+    "open": {
+      "text": "{{#if AZURE}}",
+      "type": "open",
+      "expression": "if",
+      "_index": 2
+    },
+    "close": {
+      "text": "{{/if}}",
+      "type": "close",
+      "expression": "if",
+      "_index": 2
+    },
+    "children": []
+  }
+]
 */
